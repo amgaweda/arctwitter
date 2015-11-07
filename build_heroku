@@ -1,0 +1,17 @@
+echo "Logging In"
+heroku login
+echo "Please Enter Project Name: "
+read name
+heroku apps:destroy --app $name --confirm $name
+echo "Clearing Out Any Existing Git"
+rm -rf .git/*
+heroku keys:add
+echo "Creating Initial Git"
+git init
+git add .
+git commit -m "Initiating $name"
+echo "Creating Heroku App"
+heroku create $name
+echo "Pushing Git to Heroku"
+git push heroku master
+echo "Setting Scale of Webapp"

@@ -1,0 +1,9 @@
+echo "Logging In"
+heroku login
+echo "Adding New Instance for Git"
+git add .
+echo "Please Enter a Message for Git: "
+read input_variable
+echo "Pushing Git -m '$input_variable'"
+git commit -m "$input_variable"
+git push heroku master

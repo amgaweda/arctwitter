@@ -1,0 +1,353 @@
+<script src="http://js.arcgis.com/3.14/"></script>
+<script src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
+<script src="https://cdn.rawgit.com/uscensusbureau/citysdk/Release1.1/js/citysdk.js"></script>
+<script src="https://cdn.rawgit.com/uscensusbureau/citysdk/Release1.1/js/citysdk.census.js"></script>
+<script>
+  var map;
+  var tornadoURL = "http://54.193.246.39/arcgis/rest/services/Nicholas/TweetsLayer/MapServer/2";
+  var stormURL = "http://54.193.246.39/arcgis/rest/services/Nicholas/TweetsLayer/MapServer/1";
+  var footballURL = "http://54.193.246.39/arcgis/rest/services/Nicholas/TweetsLayer/MapServer/0";
+  var currentURL;
+  var sportsLayerURL = "http://54.193.246.39/arcgis/rest/services/Nicholas/CarolinaSportsTweets/MapServer/0";
+  var currentLayer;
+  var clusterLayer;
+  var heatmapLayer;
+  var currentFeatures = [];
+  var currentDates = [0,0,0,0,0,0,0,0];
+  require([
+	"esri/map",
+	"esri/graphic",
+	"esri/Color",
+	"esri/layers/GraphicsLayer",
+	"esri/tasks/query",
+	"esri/InfoTemplate",
+	"esri/tasks/QueryTask",
+	"esri/layers/FeatureLayer",
+	"esri/dijit/BasemapToggle",
+	"esri/symbols/SimpleMarkerSymbol",
+	"esri/symbols/SimpleLineSymbol",
+	"esri/symbols/SimpleFillSymbol",
+	"esri/renderers/SimpleRenderer",
+	"esri/renderers/HeatmapRenderer",
+	"esri/tasks/Geoprocessor",
+	"esri/tasks/FeatureSet",
+	"esri/TimeExtent",
+	"esri/dijit/TimeSlider",
+	"https://dl.dropboxusercontent.com/u/79881075/ClusterLayer.js",
+	"dojo/parser",
+	"https://cdnjs.cloudflare.com/ajax/libs/rangeslider.js/2.0.2/rangeslider.min.js",
+    "dijit/layout/BorderContainer", 
+    "dijit/layout/ContentPane",
+	"dojo/domReady!"
+  ], function(Map, Graphic, Color, GraphicLayer, Query, InfoTemplate, QueryTask, FeatureLayer, BasemapToggle, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, SimpleRenderer, 
+     HeatmapRenderer, Geoprocessor, FeatureSet, TimeExtent, TimeSlider, ClusterLayer, parser, rangeSlider) {
+	parser.parse();
+	
+	esri.config.defaults.io.proxyUrl = "http://localhost/proxy/proxy.ashx";
+	
+	var tractTemplate = new InfoTemplate("${TRACT}", "Income: ${INCOME}<br>Population: ${POPULATION}<br>Poverty Rate: ${POVERTYFAMILY}<br>Bachelors Degree: ${EDUCATIONUNDERGRAD}");
+	
+	var tweetTemplate = new InfoTemplate("${screen_nam}", "${content}");
+	
+	var sdk = new CitySDK();
+	var censusModule = sdk.modules.census;
+	censusModule.enable("63a9d6abd3b35918d5fbee6672f3542aa20050f9");
+	
+	var featureLayerSymbol = new SimpleMarkerSymbol(SimpleMarkerSymbol.STYLE_CIRCLE, 8, new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID, new Color([0,0,0]), 1), new Color([252, 240, 63]));
+	var featureLayerRenderer = new SimpleRenderer(featureLayerSymbol);
+	
+	var aggregateLayerSymbol = new SimpleFillSymbol(SimpleFillSymbol.STYLE_SOLID, new SimpleLineSymbol(SimpleLineSymbol.STYLE_DASHDOT, new Color([0,0,255]), 2), new Color([140,177,210, 0.5]));
+	
+	var tractQuery = new QueryTask("http://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks/MapServer/0");
+	var gpTaskURL = "http://54.193.246.39/arcgis/rest/services/Nicholas/AggregatePoints/GPServer/Aggregate%20Points/execute";
+	var gpTask = new Geoprocessor("http://54.193.246.39/arcgis/rest/services/Nicholas/AggregatePoints/GPServer/Aggregate%20Points");
+	gpTask.setOutputSpatialReference({wkid: 102100});
+	
+	map = new Map("map", {
+		basemap: "dark-gray",
+		center: [-77.86, 34.21],
+		zoom: 6
+	});
+	
+	var heatmap = new HeatmapRenderer({
+		blurRadius: 12,
+		maxPixelIntensity: 200,
+	});	
+	
+	var toggle = new BasemapToggle({
+		map: map,
+		basemap: "streets"
+	}, "basemapToggle");
+	toggle.startup();
+	
+	var aggregateLayer = new GraphicLayer();
+	map.addLayer(aggregateLayer);
+	
+	var tractsLayer = new GraphicLayer();
+	map.addLayer(tractsLayer);	
+	
+	var request = {
+		"lat":null,
+		"lng":null,
+		"level":"tract",
+		"container":"state",
+		"variables": [
+			"income",
+			"population",
+			"poverty_family",
+			"education_bachelors"
+		]
+	};
+	
+	function createFeatureLayer() {
+		currentLayer = new FeatureLayer(currentURL, {
+			mode: FeatureLayer.MODE_SNAPSHOT,
+			outFields: ["screen_nam", "content"],
+			infoTemplate: tweetTemplate
+		});
+		currentLayer.setRenderer(featureLayerRenderer);
+		map.addLayer(currentLayer);
+		currentLayer.on("load", getFeatures);
+	}
+	
+	function createHeatmapLayer() {
+		heatmapLayer = new FeatureLayer(currentURL, {
+			mode: FeatureLayer.MODE_SNAPSHOT
+		});
+		heatmapLayer.setRenderer(heatmap);
+		map.addLayer(heatmapLayer);
+	}
+	
+	function createClusterLayer() {
+		clusterLayer = new ClusterLayer ({
+			"url": currentURL,
+			"distance": 75,
+			"zoomOnClick": true,
+			"showSingles": true,
+			"returnLimit": 2000
+		});
+		map.addLayer(clusterLayer);
+	}
+	
+	function getFeatures() {
+		var query = new Query();
+		query.returnGeometry = true;
+		query.where = "1=1";
+		//query.outFields = ["Field5"];
+		query.outFields = ["time"];
+		currentLayer.queryFeatures(query, createTimeArray);
+	}
+	
+	function createTimeArray(results) {
+		currentDates = [0,0,0,0,0,0,0,0];
+		currentFeatures = results;
+		for(var i = 0; i < results.features.length; i++) {
+			var date = results.features[i].attributes.time;
+			var hour = date.split(":")[0];
+			if(hour < 3){currentDates[0]++;}
+			if(hour >= 3 && hour < 6){currentDates[1]++;}
+			if(hour >= 6 && hour < 9){currentDates[2]++;}
+			if(hour >= 9 && hour < 12){currentDates[3]++;}
+			if(hour >= 12 && hour < 15){currentDates[4]++;}
+			if(hour >= 15 && hour < 18){currentDates[5]++;}
+			if(hour >= 18 && hour < 21){currentDates[6]++;}
+			if(hour >= 21 && hour < 24){currentDates[7]++;}
+		}
+		generateGraph();
+	}
+	
+	function executeGPTool() {
+		var distance = parseInt($("#distance").val());
+		var unit = $("#unitDropdown").val();
+		var esriUnit;
+		if(unit =="Miles"){esriUnit = "esriMiles";}
+		if(unit =="Meters"){esriUnit = "esriMeters";}
+		if(unit =="Feet"){esriUnit = "esriFeet";}
+		if(unit =="Kilometers"){esriUnit = "esriKilometers";}
+		var params = { "in_features": currentFeatures, "aggregation_distance": '{"distance":' + distance + ',"units":' + esriUnit + '}' };
+		gpTask.execute(params, drawFeatures, showError);
+	}
+	
+	function drawFeatures(results) {
+		for(var j = 0; j < results[0].value.features.length; j++) {
+			if(results[0].value.features[j].geometry) {
+				var graphic = new Graphic(results[0].value.features[j].geometry, aggregateLayerSymbol);
+				aggregateLayer.add(graphic);
+				queryTracts(results[0].value.features[j].geometry);
+			}
+		}
+	}
+	
+	function showError(error) {
+		//console.log(error);
+	}
+	
+	function queryTracts(geometry) {
+		var query = new Query();
+		query.returnGeometry = true;
+		query.geometry = geometry;
+		query.outFields = ["CENTLAT", "CENTLON"];
+		tractQuery.execute(query, displayTracts);
+	}
+	
+	function displayTracts(results) {
+		//console.log(results);
+		for(var i = 0; i < results.features.length; i++) {
+			getTractData(results.features[i].geometry, results.features[i].attributes.CENTLAT, results.features[i].attributes.CENTLON);
+		}
+	}
+	
+	function getTractData(geometry, lat, lon) {
+		while(lat.charAt(0)=='0'){
+			lat = lat.substr(1);
+		}
+		request.lat = parseFloat(lat);
+		request.lng = parseFloat(lon);
+		//console.log(request);
+		censusModule.APIRequest(request, function(response) {
+			var attributes = {};
+			attributes.INCOME = response.data[0].income;
+			attributes.POPULATION = response.data[0].population;
+			attributes.POVERTYFAMILY = response.data[0].poverty_family;
+			attributes.EDUCATIONUNDERGRAD = response.data[0].education_bachelors;
+			attributes.TRACT = response.tract;
+			var graphic = new Graphic(geometry, new SimpleFillSymbol(), attributes, tractTemplate);
+			//console.log(graphic);
+			tractsLayer.add(graphic);
+		});
+	}
+	
+	function removeAllLayers() {
+		if(heatmapLayer) {
+			map.removeLayer(heatmapLayer);
+			heatmapLayer = null;
+		}
+		if(clusterLayer) {
+			map.removeLayer(clusterLayer);
+			clusterLayer = null;
+		}
+		if(currentLayer) {
+			map.removeLayer(currentLayer);
+			currentLayer = null;
+		}
+		tractsLayer.clear();
+		aggregateLayer.clear();
+	}
+	
+	$("#aggregate").click(function() {
+		tractsLayer.clear();
+		aggregateLayer.clear();
+		executeGPTool()
+	});
+	$("#cluster").click(function() {
+		if(heatmapLayer) {
+			map.removeLayer(heatmapLayer);
+			heatmapLayer = null;
+		}
+		if(clusterLayer) {
+			map.removeLayer(clusterLayer);
+			clusterLayer = null;
+		}
+		createClusterLayer();
+		currentLayer.hide();
+	});
+	$("#heat").click(function() {
+		if(clusterLayer) {
+			map.removeLayer(clusterLayer);
+			clusterLayer = null;
+		}
+		if(heatmapLayer) {
+			map.removeLayer(heatmapLayer);
+			heatmapLayer = null;
+		}
+		createHeatmapLayer();
+		currentLayer.hide();
+	});
+	$("#normal").click(function() {
+		if(heatmapLayer) {
+			map.removeLayer(heatmapLayer);
+			heatmapLayer = null;
+		}
+		if(clusterLayer) {
+			map.removeLayer(clusterLayer);
+			clusterLayer = null;
+		}
+		currentLayer.show();
+	});
+	$("#tornadotweets").click(function() {
+		removeAllLayers();
+		currentURL = tornadoURL;
+		createFeatureLayer();
+	});
+	$("#footballtweets").click(function() {
+		removeAllLayers();
+		currentURL = footballURL;
+		createFeatureLayer();
+	});
+	$("#stormtweets").click(function() {
+		removeAllLayers();
+		currentURL = stormURL;
+		createFeatureLayer();
+	});
+	$("#nctweets").click(function() {
+		removeAllLayers();
+		currentURL = sportsLayerURL;
+		createFeatureLayer();
+	});
+	$("#slider").change(function(){
+		//console.log("hello");
+	})
+
+	function generateGraph() {
+		// Get the context of the canvas element we want to select
+		var ctx = document.getElementById("myChart").getContext("2d");
+		var data = {
+		    labels: [
+				"12a",
+				"03a",
+				"06a",
+				"09a",
+				"12p",
+				"03p",
+				"06p",
+				"09p"
+			],
+		    datasets: [
+		        {
+		            label: "My Dataset",
+		            fillColor: "rgba(46, 204, 113, 0.5)",
+		            strokeColor: "rgba(46, 204, 113, 1.0)",
+		            pointColor: "rgba(46, 204, 113, 1.0)",
+		            pointStrokeColor: "#fff",
+		            pointHighlightFill: "#fff",
+		            pointHighlightStroke: "rgba(151,187,205,1)",
+		            data: currentDates
+		        }
+		    ]
+		};
+		var options = {
+			//Number - amount extra to add to the radius to cater for hit detection outside the drawn point
+			pointHitDetectionRadius : 5,
+			//Boolean - Whether to show a stroke for datasets
+			datasetStroke : true,
+			//Number - Pixel width of dataset stroke
+			datasetStrokeWidth : 2,
+			//Boolean - Whether to fill the dataset with a colour
+			datasetFill : true
+		};
+		var myNewChart = new Chart(ctx).Line(data, options);
+		$("#slider").fadeIn("fast");
+	}
+  });
+</script>
+<div id="map"></div>
+<div id="basemapToggle"></div>
+<input type="range" min="0" max="25" step="1" value="0" data-orientation="horizontal"></input>
+<div id="timeSlider"></div>
+<button id="aggregate">Aggregate</button>
+<button id="cluster">Cluster</button>
+<button id="heatmap">Heatmap</button>
+<button id="normal">Normal</button>
+<input id="distance" type="text" value="5"></input>
+<button id="layer1">Layer 1</button>
+<button id="layer2">Layer 2</button>

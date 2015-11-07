@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-sm-3 menu">
+        	{% include 'menu.html' %}
+        </div>
+        <div class="col-sm-9 map">
+            {% include 'map.html' %}
+        </div>
+    </div>
+</div>
+{% endblock %}

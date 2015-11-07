@@ -1,0 +1,43 @@
+<div class="row keywords">
+	<div class="green" id="stormtweets">Rainstorm</div>
+	<div class="green" id="tornadotweets">Tornado</div>
+	<div class="green" id="footballtweets">Football</div>
+	<div class="green" id="nctweets">North Carolina</div>
+</div>
+<div class="row options">
+	<div class="row">
+		<span>Tweets per Hour</span>
+		<br>
+		<form>
+			<canvas id="myChart" width="250" height="150"></canvas>
+			<!-- <input class="time-slider" id="slider" type="range" min=0 max=21 value=9 step=3> -->
+		</form>
+	</div>
+	<div class="row aggregate-option">
+		<span>Aggregate Options</span>
+		<br>
+		<form>
+			<input type="text" id="distance" size="5" value="50">
+			<select name="unit" id="unitDropdown">
+				<option>Miles</option>
+				<option>Kilometers</option>
+				<option>Feet</option>
+				<option>Meters</option>
+			</select>
+			<div class="green submit" id="aggregate">Submit</div>
+		</form>
+	</div>
+	<div class="row">
+		<span>Render Options</span>
+		<br>
+		<div class="green render-option" id="heat">Heat Map</div>
+		<div class="green render-option" id="cluster">Cluster</div>
+		<div class="green render-option" id="normal">Normal</div>
+	</div>
+</div>
+<div class="row site-title">
+    <a href="/">
+        <img class="logo" src="{{ url_for('static',filename='img/arctwitter-logo-xs.png') }}">
+        <span>{{ config.SITE_TITLE[1:] }}</span>
+    </a>
+</div>

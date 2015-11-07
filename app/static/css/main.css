@@ -1,0 +1,185 @@
+body {
+	font-family: Montserrat;
+}
+
+a {
+	text-decoration: none;
+	color: rgba(236, 240, 241, 1.0);
+}
+
+a:hover {
+	text-decoration: none;
+}
+
+.container {
+    height:100vh;
+    width: 100%;
+}
+
+.menu {
+	background-image: url("../img/old_moon.png");
+	height:100vh;
+	background-color: rgba(236, 240, 241,1.0);
+	margin: 0 auto;
+	position: relative;
+}
+
+.map {
+	height:100vh;
+	background-color: rgba(236, 240, 241,1.0);
+	padding: 0;
+}
+
+.keywords div {
+	font-size: 24px;
+	height:10vh;
+	border-bottom: solid rgba(236, 240, 241,1.0);
+	color: white;
+}
+
+.green {
+	background-color: rgba(46, 204, 113, 1.0);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+}
+.green:hover {
+	color: rgba(230, 230, 230, 1.0);
+	background-color: rgba(46, 204, 113, 0.8);
+}
+
+.state-red {
+	background-color: rgba(204, 0, 0, 1.0);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.state-red:hover {
+	color: rgba(230, 230, 230, 1.0);
+	background-color: rgba(204, 0, 0, 0.8);
+}
+
+.carolina-blue {
+	background-color: rgba(153, 186, 221, 1.0);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.carolina-blue:hover {
+	color: rgba(230, 230, 230, 1.0);
+	background-color: rgba(153, 186, 221, 0.8);
+}
+
+.options {
+	width: 80%;
+	margin: 0 auto;
+	text-align: center;
+}
+
+.options .placeholder-image {
+	width: 100%;
+	margin: 20px auto;
+}
+
+#map {
+	height:100vh;
+}
+.render-option {
+	float: left;
+	width: 30%;
+	font-size: 18px;
+	min-height: 75px;
+	text-decoration: none;
+	margin: 1.5%;
+	color: white;
+}
+/* You'll need to tell webkit you want nothing to do with their default styles 
+by including a -webkit-appearance: none; on both the input and the thumb. */
+input[type=range]{
+	-webkit-appearance: none;
+	margin: 10px auto;
+	margin-left: 28px;
+	width: 215px;
+}
+input[type=range]::-webkit-slider-runnable-track {
+    height: 5px;
+    background: #BDC3C7;
+}
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    border: none;
+    height: 25px;
+    width: 7px;
+    background: rgba(46, 204, 113, 1.0);
+    margin-top: -10px;
+    cursor: pointer;
+}
+input[type=range]:focus {
+    outline: none;
+}
+.aggregate-option {
+	margin: 0 auto;
+}
+.aggregate-option input {
+	height: 30px;
+	outline: none;
+}
+.aggregate-option select {
+	-webkit-appearance: none;  	/*REMOVES DEFAULT CHROME & SAFARI STYLE*/
+	-moz-appearance: none;  	/*REMOVES DEFAULT FIREFOX STYLE*/
+	border: 0 !important;  		/*REMOVES BORDER*/
+
+	color: #fff;
+	outline: none;
+	-webkit-border-radius: 0;
+	border-radius: 0;
+	font-size: 14px;
+	padding-left: 10px;
+	height: 30px;
+	width: 40%;
+	cursor: pointer;
+
+	background-color: rgba(46, 204, 113, 1.0);
+}
+.row.options .row {
+	padding: 10px 0;
+}
+#basemapToggle {
+	top: 50px;
+	right: 50px;
+	z-index: 100;
+	position: absolute;
+}
+.time-slider {
+	display: none;
+}
+.submit {
+	width: 30%;
+	color: white;
+	height: 30px;
+	float: right;
+}
+.site-title {
+	text-align: center;
+	position: absolute;
+	bottom: 0;
+	left: 35%;
+}
+.site-title a {
+	color: rgba(46, 204, 113, 1.0);
+	margin: 0 auto;
+	text-decoration: none;
+	font-family: Pacifico, sans-serif;
+  	-webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    padding-left: 10px;
+	font-size: 25px;
+}
+.site-title a:hover {
+	text-decoration: none;
+}
+.site-title img {
+	vertical-align: baseline;
+	margin-right: -10px;
+}
